@@ -1,0 +1,15 @@
+numpy
+pandas
+scikit-learn
+category_encoders
+matplotlib
+pypickle
+seaborn
+
+fastapi
+uvicorn
+python-dotenv
+
+google-genai
+
+pydantic

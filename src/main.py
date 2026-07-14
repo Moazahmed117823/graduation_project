@@ -1,7 +1,7 @@
 import os
 import pickle
 from pathlib import Path
-
+import uvicorn
 import numpy as np
 import pandas as pd
 from dotenv import load_dotenv
@@ -273,3 +273,6 @@ def run_real_estate_pipeline(payload: HouseFeaturesInput):
         },
         "llm_interpretation": llm_interpretation,
     }
+
+if __name__ == "__main__":
+    uvicorn.run("main:app",host="0.0.0.0",port=9999)

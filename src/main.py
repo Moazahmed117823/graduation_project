@@ -1,9 +1,10 @@
 import os
 import pickle
 from pathlib import Path
-import uvicorn
+
 import numpy as np
 import pandas as pd
+import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -274,5 +275,6 @@ def run_real_estate_pipeline(payload: HouseFeaturesInput):
         "llm_interpretation": llm_interpretation,
     }
 
+
 if __name__ == "__main__":
-    uvicorn.run("main:app",host="0.0.0.0",port=9999)
+    uvicorn.run("main:app", host="0.0.0.0", port=9999)

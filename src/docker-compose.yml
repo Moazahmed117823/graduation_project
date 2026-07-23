@@ -1,0 +1,16 @@
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: src/Dockerfile
+    image: ${DOCKERHUB_USERNAME:-username}/graduation-project-backend:latest
+    ports:
+      - "9999:9999"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: ${DOCKERHUB_USERNAME:-username}/graduation-project-frontend:latest
+    ports:
+      - "80:80"

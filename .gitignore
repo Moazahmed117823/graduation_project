@@ -216,3 +216,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+.secrets
+.gitignore
+CICD_FIX_REPORT.md
+tests/test_pipeline.py
+tests/
+project_guide.md
+machinfy_graduation_slides.md

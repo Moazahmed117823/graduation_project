@@ -60,21 +60,3 @@ jobs:
           docker compose -f src/docker-compose.yml push
           docker push ${DOCKERHUB_USERNAME}/graduation-project-backend:${GIT_SHA}
           docker push ${DOCKERHUB_USERNAME}/graduation-project-frontend:${GIT_SHA}
-
-  release:
-    needs: docker-build-and-push
-    if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-      - name: Checkout Repo & Codebase
-        uses: actions/checkout@v7
-
-      - name: Create Github Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref }}
-          name: Release ${{ github.ref_name }}
-          generate_release_notes: true

@@ -10,6 +10,6 @@ fastapi
 uvicorn
 python-dotenv
 
-google-genai
+openrouter
 
 pydantic

@@ -8,7 +8,7 @@ import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from google import genai
+from openrouter import OpenRouter
 from pydantic import BaseModel, Field
 
 # 1. LOAD CONFIGURATION ENVIRONMENT AT BOOT
@@ -33,10 +33,10 @@ app.add_middleware(
 # 2. INITIALIZE GLOBAL PRODUCTION CLIENT ASSETS
 try:
     # ACCESS API KEY DYNAMICALLY FROM SECURE ENVIRONMENT
-    api_key = os.getenv("GEMINI_API_KEY")
-    ai_client = genai.Client(api_key=api_key) if api_key else None
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    ai_client = OpenRouter(api_key=api_key) if api_key else None
 except Exception as e:
-    print(f"CRITICAL WARNING: GenAI SDK initialization failed: {e}")
+    print(f"CRITICAL WARNING: OpenRouter SDK initialization failed: {e}")
     ai_client = None
 
 # GLOBAL MODEL PLACEHOLDERS
@@ -251,13 +251,14 @@ def run_real_estate_pipeline(payload: HouseFeaturesInput):
             3. Synthesize the final investment trust outlook.
             """
 
-            # UPDATE MODEL TO GEMINI-1.5-FLASH
-            response = ai_client.models.generate_content(
-                model="gemini-1.5-flash",
-                contents=prompt_payload,
-                config={"system_instruction": sys_instruction, "temperature": 0.2},
+            response = ai_client.chat.send(
+                model="google/gemma-4-26b-a4b-it:free",
+                messages=[
+                    {"role": "system", "content": sys_instruction},
+                    {"role": "user", "content": prompt_payload},
+                ],
             )
-            llm_interpretation = response.text
+            llm_interpretation = response.choices[0].message.content
         except Exception as api_err:
             llm_interpretation = (
                 f"Live interpretation generation suspended: {str(api_err)}"

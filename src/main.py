@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from openrouter import OpenRouter
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 # 1. LOAD CONFIGURATION ENVIRONMENT AT BOOT
 # UPPERCASE COMMENTS FOR ACCURACY TRACKING
@@ -109,37 +109,37 @@ def load_serialized_models():
 
 # 3. SCHEMA DEFINITION FOR VALIDATING INCOMING REQUEST PAYLOADS
 class HouseFeaturesInput(BaseModel):
-    bedrooms: int = Field(..., example=3, description="Number of bedrooms")
-    bathrooms: float = Field(..., example=2.25, description="Number of bathrooms")
+    bedrooms: int = Field(..., json_schema_extra=3, description="Number of bedrooms")
+    bathrooms: float = Field(..., json_schema_extra=2.25, description="Number of bathrooms")
     sqft_living: int = Field(
-        ..., example=2570, description="Living space footprint area in sqft"
+        ..., json_schema_extra=2570, description="Living space footprint area in sqft"
     )
     sqft_lot: int = Field(
-        ..., example=7242, description="Total lot size footprint area in sqft"
+        ..., json_schema_extra=7242, description="Total lot size footprint area in sqft"
     )
-    floors: float = Field(..., example=2.0, description="Number of structural floors")
+    floors: float = Field(..., json_schema_extra=2.0, description="Number of structural floors")
     waterfront: int = Field(
-        ..., example=0, description="Waterfront view status flag (0=No, 1=Yes)"
+        ..., json_schema_extra=0, description="Waterfront view status flag (0=No, 1=Yes)"
     )
-    view: int = Field(..., example=0, description="Quality index rating of view (0-4)")
+    view: int = Field(..., json_schema_extra=0, description="Quality index rating of view (0-4)")
     condition: int = Field(
-        ..., example=3, description="Overall condition grading assessment score (1-5)"
+        ..., json_schema_extra=3, description="Overall condition grading assessment score (1-5)"
     )
     sqft_above: int = Field(
         ...,
-        example=2170,
+        json_schema_extra=2170,
         description="Square footage footprint above ground grade level",
     )
     sqft_basement: int = Field(
         ...,
-        example=400,
+        json_schema_extra=400,
         description="Square footage footprint below ground basement level",
     )
     yr_built: int = Field(
-        ..., example=2005, description="Original year of construction completion"
+        ..., json_schema_extra=2005, description="Original year of construction completion"
     )
     yr_renovated: int = Field(
-        ..., example=0, description="Year of last structural renovation (0 if never)"
+        ..., json_schema_extra=0, description="Year of last structural renovation (0 if never)"
     )
     city: Literal[
         'Shoreline', 'Seattle', 'Kent', 'Bellevue', 'Redmond', 'Maple Valley', 
@@ -149,7 +149,24 @@ class HouseFeaturesInput(BaseModel):
         'Duvall', 'Burien', 'Covington', 'Other', 'Kenmore', 'Newcastle', 
         'Mercer Island', 'Black Diamond', 'Ravensdale', 'Clyde Hill', 'Algona', 
         'Tukwila', 'Vashon', 'SeaTac', 'Medina', 'Enumclaw', 'Pacific'
-    ] = Field(..., example="Seattle", description="Select the city municipality for geographic price weighting")
+    ] = Field(..., json_schema_extra="Seattle", description="Select the city municipality for geographic price weighting")
+
+@model_validator(mode='after')
+def check_architectural_anomalies(self):
+        """PREVENT ALGORITHMIC HALLUCINATIONS BY BLOCKING OUT-OF-DISTRIBUTION INPUTS."""
+        # UPPERCASE COMMENTS FOR ACCURACY TRACKING
+        
+        # PREVENT DIVISION BY ZERO IF BEDROOMS = 0
+        if self.bedrooms > 0:
+            sqft_per_bed = self.sqft_living / self.bedrooms
+            
+            # IF A HOUSE HAS MORE THAN 1200 SQFT PER BEDROOM, IT IS HIGHLY ABNORMAL
+            if sqft_per_bed > 1200:
+                raise ValueError(
+                    f"Anomaly Detected: {sqft_per_bed:.0f} sqft per bedroom is statistically invalid for this model. "
+                    "Please verify the square footage and bedroom count."
+                )
+        return self
 
 # 4. SERVER HEALTH CHECK ENDPOINT
 @app.get("/health", tags=["Status"])

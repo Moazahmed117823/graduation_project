@@ -1,3 +1,4 @@
+
 import os
 import pickle
 from pathlib import Path
@@ -71,7 +72,7 @@ def load_serialized_models():
     try:
         # DYNAMIC ABSOLUTE PATHS — anchored to this file's location (works from any CWD)
         _models_dir = Path(__file__).resolve().parent / "models"
-        classifier_path = str(_models_dir / "logistic_regression_pipeline.pkl")
+        classifier_path = str(_models_dir / "Gradient_Boosting_Pipeline.pkl")
         regressor_path = str(_models_dir / "gradient_boosting_regression_model.pkl")
         models_dir = str(_models_dir)
 
@@ -160,7 +161,7 @@ class HouseFeaturesInput(BaseModel):
                 sqft_per_bed = self.sqft_living / self.bedrooms
                 
                 # IF A HOUSE HAS MORE THAN 1200 SQFT PER BEDROOM, IT IS HIGHLY ABNORMAL
-                if sqft_per_bed > 1200:
+                if sqft_per_bed > 2500:
                     raise ValueError(
                         f"Anomaly Detected: {sqft_per_bed:.0f} sqft per bedroom is statistically invalid for this model. "
                         "Please verify the square footage and bedroom count."
@@ -253,22 +254,22 @@ def run_real_estate_pipeline(payload: HouseFeaturesInput):
     # ENFORCE STRICT COLUMN ORDER FOR REGRESSION ENGINE AS WELL
     # APPEND CLUSTER IDS AT THE END ASSUMING THAT WAS THE TRAINING ARCHITECTURE
     regression_features = {
-        "log_sqft_living": input_data["log_sqft_living"],
-        "log_sqft_lot": input_data["log_sqft_lot"],
-        "log_sqft_above": input_data["log_sqft_above"],
-        "log_sqft_basement": input_data["log_sqft_basement"],
-        "bedrooms": input_data["bedrooms"],
-        "bathrooms": input_data["bathrooms"],
-        "floors": input_data["floors"],
-        "view": input_data["view"],
-        "condition": input_data["condition"],
-        "yr_built": input_data["yr_built"],
-        "yr_renovated": input_data["yr_renovated"],
-        "waterfront": input_data["waterfront"],
-        "cluster_id_1": 1 if predicted_cluster == 1 else 0,
-        "cluster_id_2": 1 if predicted_cluster == 2 else 0,
-        "city_encoded": mapped_city_encoding
-    }
+    "log_sqft_living": input_data["log_sqft_living"],
+    "log_sqft_lot": input_data["log_sqft_lot"],
+    "log_sqft_above": input_data["log_sqft_above"],
+    "log_sqft_basement": input_data["log_sqft_basement"],
+    "bedrooms": input_data["bedrooms"],
+    "bathrooms": input_data["bathrooms"],
+    "floors": input_data["floors"],
+    "view": input_data["view"],
+    "condition": input_data["condition"],
+    "yr_built": input_data["yr_built"],
+    "yr_renovated": input_data["yr_renovated"],
+    "waterfront": input_data["waterfront"],
+    "cluster_id_1": 1 if predicted_cluster == 1 else 0,
+    "cluster_id_2": 1 if predicted_cluster == 2 else 0,
+    "city_encoded": mapped_city_encoding
+}
 
     X_reg = pd.DataFrame([regression_features])
 

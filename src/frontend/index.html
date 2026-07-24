@@ -907,7 +907,28 @@
                                 <option value="Kirkland">Kirkland</option>
                                 <option value="Issaquah">Issaquah</option>
                                 <option value="Woodinville">Woodinville</option>
-                                <option value="Normally I can help with things like this, but I don't seem to have access to that content. You can try again or ask me for something else.</option>
+                                <option value="Normandy Park">Normandy Park</option>
+                                <option value="Fall City">Fall City</option>
+                                <option value="Renton">Renton</option>
+                                <option value="Carnation">Carnation</option>
+                                <option value="Snoqualmie">Snoqualmie</option>
+                                <option value="Duvall">Duvall</option>
+                                <option value="Burien">Burien</option>
+                                <option value="Covington">Covington</option>
+                                <option value="Other">Other</option>
+                                <option value="Kenmore">Kenmore</option>
+                                <option value="Newcastle">Newcastle</option>
+                                <option value="Mercer Island">Mercer Island</option>
+                                <option value="Black Diamond">Black Diamond</option>
+                                <option value="Ravensdale">Ravensdale</option>
+                                <option value="Clyde Hill">Clyde Hill</option>
+                                <option value="Algona">Algona</option>
+                                <option value="Tukwila">Tukwila</option>
+                                <option value="Vashon">Vashon</option>
+                                <option value="SeaTac">SeaTac</option>
+                                <option value="Medina">Medina</option>
+                                <option value="Enumclaw">Enumclaw</option>
+                                <option value="Pacific">Pacific</option>
                             </select>
                         </div>
                         <!-- Waterfront -->
@@ -1171,6 +1192,7 @@
                         sqft_basement: 400,
                         yr_built: 2005,
                         yr_renovated: 0,
+                        city: "Seattle",
                     });
                     const waterfrontBool = ref(false);
 
@@ -1179,7 +1201,8 @@
                             form.value.bedrooms > 0 &&
                             form.value.sqft_living > 0 &&
                             form.value.sqft_lot > 0 &&
-                            form.value.yr_built > 0,
+                            form.value.yr_built > 0 &&
+                            !!form.value.city,
                     );
 
                     // ── PREDICTION ──

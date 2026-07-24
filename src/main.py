@@ -266,12 +266,12 @@ def run_real_estate_pipeline(payload: HouseFeaturesInput):
     "yr_built": input_data["yr_built"],
     "yr_renovated": input_data["yr_renovated"],
     "waterfront": input_data["waterfront"],
+    "city_encoded": mapped_city_encoding,
     "cluster_id_1": 1 if predicted_cluster == 1 else 0,
-    "cluster_id_2": 1 if predicted_cluster == 2 else 0,
-    "city_encoded": mapped_city_encoding
+    "cluster_id_2": 1 if predicted_cluster == 2 else 0
 }
 
-    X_reg = pd.DataFrame([regression_features])
+    X_reg = pd.DataFrame([regression_features])[list(regressor_model.feature_names_in_)]
 
     # EXECUTE REGRESSION ENGINE
     predicted_log_price = regressor_model.predict(X_reg)[0]

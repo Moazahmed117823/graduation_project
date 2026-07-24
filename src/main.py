@@ -151,22 +151,21 @@ class HouseFeaturesInput(BaseModel):
         'Tukwila', 'Vashon', 'SeaTac', 'Medina', 'Enumclaw', 'Pacific'
     ] = Field(..., json_schema_extra="Seattle", description="Select the city municipality for geographic price weighting")
 
-@model_validator(mode='after')
-def check_architectural_anomalies(self):
-        """PREVENT ALGORITHMIC HALLUCINATIONS BY BLOCKING OUT-OF-DISTRIBUTION INPUTS."""
-        # UPPERCASE COMMENTS FOR ACCURACY TRACKING
-        
-        # PREVENT DIVISION BY ZERO IF BEDROOMS = 0
-        if self.bedrooms > 0:
-            sqft_per_bed = self.sqft_living / self.bedrooms
+    @model_validator(mode='after')
+    def check_architectural_anomalies(self):
+            """PREVENT ALGORITHMIC HALLUCINATIONS BY BLOCKING OUT-OF-DISTRIBUTION INPUTS."""
             
-            # IF A HOUSE HAS MORE THAN 1200 SQFT PER BEDROOM, IT IS HIGHLY ABNORMAL
-            if sqft_per_bed > 1200:
-                raise ValueError(
-                    f"Anomaly Detected: {sqft_per_bed:.0f} sqft per bedroom is statistically invalid for this model. "
-                    "Please verify the square footage and bedroom count."
-                )
-        return self
+            # PREVENT DIVISION BY ZERO IF BEDROOMS = 0
+            if self.bedrooms > 0:
+                sqft_per_bed = self.sqft_living / self.bedrooms
+                
+                # IF A HOUSE HAS MORE THAN 1200 SQFT PER BEDROOM, IT IS HIGHLY ABNORMAL
+                if sqft_per_bed > 1200:
+                    raise ValueError(
+                        f"Anomaly Detected: {sqft_per_bed:.0f} sqft per bedroom is statistically invalid for this model. "
+                        "Please verify the square footage and bedroom count."
+                    )
+            return self
 
 # 4. SERVER HEALTH CHECK ENDPOINT
 @app.get("/health", tags=["Status"])

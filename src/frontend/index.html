@@ -1122,7 +1122,7 @@
 
             createApp({
                 setup() {
-                    const apiBase = ref("https://graduation-project-two-theta.vercel.app");
+                    const apiBase = ref(window.location.origin);
 
                     // ── HEALTH STATE ──
                     const health = ref({

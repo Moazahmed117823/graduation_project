@@ -5,6 +5,7 @@ from typing import Literal
 import numpy as np
 import pandas as pd
 import uvicorn
+from fastapi.responses import FileResponse
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -216,7 +217,7 @@ def run_real_estate_pipeline(payload: HouseFeaturesInput):
     }
 
     X_clf = pd.DataFrame([classification_features])
-    
+
     predicted_cluster = classifier_pipeline.predict(X_clf)[0]
 
     cluster_mapping = {
@@ -304,6 +305,13 @@ def run_real_estate_pipeline(payload: HouseFeaturesInput):
         "llm_interpretation": llm_interpretation,
     }
 
+@app.get("/", tags=["UI"])
+def serve_user_interface():
+    """
+    RETURNS THE COMPILED HTML FRONTEND SO THE UI AND API 
+    SHARE THE EXACT SAME ORIGIN DOMAIN AUTOMATICALLY.
+    """
+    return FileResponse("index.html")
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=9999)

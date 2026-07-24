@@ -189,7 +189,7 @@ def run_real_estate_pipeline(payload: HouseFeaturesInput):
         )
 
     # CONVERT PAYLOAD CONTENT TO INPUT DICTIONARY FOR FEATURE INJECTION
-    input_data = payload.dict()
+    input_data = payload.model_dump()
 
     # CALCULATE LOG SPECS TO MATCH NOTEBOOK PIPELINE TRAINING PATTERNS
     input_data["log_sqft_living"] = np.log1p(input_data["sqft_living"])
@@ -200,7 +200,13 @@ def run_real_estate_pipeline(payload: HouseFeaturesInput):
     mapped_city_encoding = CITY_ENCODING_MAP.get(payload.city, DEFAULT_CITY_WEIGHT)
 
     # --- STEP 1: PORTFOLIO CATEGORY CLASSIFICATION ---
+    
+    # ENFORCE STRICT SCIKIT-LEARN COLUMN ORDER DURING DICTIONARY INSTANTIATION
     classification_features = {
+        "log_sqft_living": input_data["log_sqft_living"],
+        "log_sqft_lot": input_data["log_sqft_lot"],
+        "log_sqft_above": input_data["log_sqft_above"],
+        "log_sqft_basement": input_data["log_sqft_basement"],
         "bedrooms": input_data["bedrooms"],
         "bathrooms": input_data["bathrooms"],
         "floors": input_data["floors"],
@@ -208,17 +214,14 @@ def run_real_estate_pipeline(payload: HouseFeaturesInput):
         "condition": input_data["condition"],
         "yr_built": input_data["yr_built"],
         "yr_renovated": input_data["yr_renovated"],
-        "log_sqft_living": input_data["log_sqft_living"],
-        "log_sqft_lot": input_data["log_sqft_lot"],
-        "log_sqft_above": input_data["log_sqft_above"],
-        "log_sqft_basement": input_data["log_sqft_basement"],
-        "city_encoded": mapped_city_encoding,
-        "waterfront": input_data["waterfront"]
+        "waterfront": input_data["waterfront"],
+        "city_encoded": mapped_city_encoding
     }
 
     X_clf = pd.DataFrame([classification_features])
 
-    predicted_cluster = classifier_pipeline.predict(X_clf)[0]
+    # EXECUTE CLASSIFICATION PIPELINE
+    predicted_cluster = int(classifier_pipeline.predict(X_clf)[0])
 
     cluster_mapping = {
         0: "Budget Portfolio",
@@ -230,7 +233,14 @@ def run_real_estate_pipeline(payload: HouseFeaturesInput):
     )
 
     # --- STEP 2: CONTINUOUS PRICE REGRESSION ---
+    
+    # ENFORCE STRICT COLUMN ORDER FOR REGRESSION ENGINE AS WELL
+    # APPEND CLUSTER IDS AT THE END ASSUMING THAT WAS THE TRAINING ARCHITECTURE
     regression_features = {
+        "log_sqft_living": input_data["log_sqft_living"],
+        "log_sqft_lot": input_data["log_sqft_lot"],
+        "log_sqft_above": input_data["log_sqft_above"],
+        "log_sqft_basement": input_data["log_sqft_basement"],
         "bedrooms": input_data["bedrooms"],
         "bathrooms": input_data["bathrooms"],
         "floors": input_data["floors"],
@@ -238,18 +248,15 @@ def run_real_estate_pipeline(payload: HouseFeaturesInput):
         "condition": input_data["condition"],
         "yr_built": input_data["yr_built"],
         "yr_renovated": input_data["yr_renovated"],
-        "log_sqft_living": input_data["log_sqft_living"],
-        "log_sqft_lot": input_data["log_sqft_lot"],
-        "log_sqft_above": input_data["log_sqft_above"],
-        "log_sqft_basement": input_data["log_sqft_basement"],
-        "city_encoded": mapped_city_encoding,
         "waterfront": input_data["waterfront"],
+        "city_encoded": mapped_city_encoding,
         "cluster_id_1": 1 if predicted_cluster == 1 else 0,
         "cluster_id_2": 1 if predicted_cluster == 2 else 0
     }
 
     X_reg = pd.DataFrame([regression_features])
 
+    # EXECUTE REGRESSION ENGINE
     predicted_log_price = regressor_model.predict(X_reg)[0]
     final_predicted_price = float(np.exp(predicted_log_price))
     
@@ -304,14 +311,6 @@ def run_real_estate_pipeline(payload: HouseFeaturesInput):
         },
         "llm_interpretation": llm_interpretation,
     }
-
-@app.get("/", tags=["UI"])
-def serve_user_interface():
-    """
-    RETURNS THE COMPILED HTML FRONTEND SO THE UI AND API 
-    SHARE THE EXACT SAME ORIGIN DOMAIN AUTOMATICALLY.
-    """
-    return FileResponse("index.html")
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=9999)

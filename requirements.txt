@@ -5,6 +5,7 @@ category_encoders
 matplotlib
 pypickle
 seaborn
+typing
 
 fastapi
 uvicorn

@@ -1,7 +1,7 @@
 import os
 import pickle
 from pathlib import Path
-
+from typing import Literal
 import numpy as np
 import pandas as pd
 import uvicorn
@@ -43,6 +43,24 @@ except Exception as e:
 classifier_pipeline = None
 regressor_model = None
 
+CITY_ENCODING_MAP = {
+    'Shoreline': 420396.79, 'Seattle': 579837.47, 'Kent': 439492.45, 
+    'Bellevue': 847180.66, 'Redmond': 667649.53, 'Maple Valley': 336582.70, 
+    'North Bend': 406793.28, 'Lake Forest Park': 465859.08, 'Sammamish': 686917.56, 
+    'Auburn': 299340.49, 'Des Moines': 310396.57, 'Bothell': 496545.05, 
+    'Federal Way': 289888.43, 'Kirkland': 651583.59, 'Issaquah': 596163.75, 
+    'Woodinville': 609560.71, 'Normandy Park': 531629.02, 'Fall City': 592637.84, 
+    'Renton': 377040.97, 'Carnation': 528204.09, 'Snoqualmie': 536400.18, 
+    'Duvall': 418754.09, 'Burien': 349860.06, 'Covington': 319533.51, 
+    'Other': 580836.13, 'Kenmore': 448533.69, 'Newcastle': 641613.96, 
+    'Mercer Island': 1123040.74, 'Black Diamond': 498928.87, 'Ravensdale': 543847.94, 
+    'Clyde Hill': 774526.80, 'Algona': 489085.47, 'Tukwila': 378723.85, 
+    'Vashon': 495509.27, 'SeaTac': 333934.42, 'Medina': 983976.74, 
+    'Enumclaw': 383368.82, 'Pacific': 487330.60
+}
+
+# CALCULATE A DYNAMIC FALLBACK VALUE TO PREVENT UNEXPECTED API CRASHES
+DEFAULT_CITY_WEIGHT = sum(CITY_ENCODING_MAP.values()) / len(CITY_ENCODING_MAP)
 
 @app.on_event("startup")
 def load_serialized_models():
@@ -122,7 +140,15 @@ class HouseFeaturesInput(BaseModel):
     yr_renovated: int = Field(
         ..., example=0, description="Year of last structural renovation (0 if never)"
     )
-
+    city: Literal[
+        'Shoreline', 'Seattle', 'Kent', 'Bellevue', 'Redmond', 'Maple Valley', 
+        'North Bend', 'Lake Forest Park', 'Sammamish', 'Auburn', 'Des Moines', 
+        'Bothell', 'Federal Way', 'Kirkland', 'Issaquah', 'Woodinville', 
+        'Normandy Park', 'Fall City', 'Renton', 'Carnation', 'Snoqualmie', 
+        'Duvall', 'Burien', 'Covington', 'Other', 'Kenmore', 'Newcastle', 
+        'Mercer Island', 'Black Diamond', 'Ravensdale', 'Clyde Hill', 'Algona', 
+        'Tukwila', 'Vashon', 'SeaTac', 'Medina', 'Enumclaw', 'Pacific'
+    ] = Field(..., example="Seattle", description="Select the city municipality for geographic price weighting")
 
 # 4. SERVER HEALTH CHECK ENDPOINT
 @app.get("/health", tags=["Status"])
@@ -170,24 +196,28 @@ def run_real_estate_pipeline(payload: HouseFeaturesInput):
     input_data["log_sqft_above"] = np.log1p(input_data["sqft_above"])
     input_data["log_sqft_basement"] = np.log1p(input_data["sqft_basement"])
 
-    # --- STEP 1: PORTFOLIO CATEGORY CLASSIFICATION ---
-    classification_features = [
-        "log_sqft_living",
-        "log_sqft_lot",
-        "log_sqft_above",
-        "log_sqft_basement",
-        "bedrooms",
-        "bathrooms",
-        "floors",
-        "view",
-        "condition",
-        "yr_built",
-        "yr_renovated",
-        "waterfront",
-    ]
+    mapped_city_encoding = CITY_ENCODING_MAP.get(payload.city, DEFAULT_CITY_WEIGHT)
 
-    X_class = pd.DataFrame([input_data])[classification_features]
-    predicted_cluster = int(classifier_pipeline.predict(X_class)[0])
+    # --- STEP 1: PORTFOLIO CATEGORY CLASSIFICATION ---
+    classification_features = {
+        "bedrooms": input_data["bedrooms"],
+        "bathrooms": input_data["bathrooms"],
+        "floors": input_data["floors"],
+        "view": input_data["view"],
+        "condition": input_data["condition"],
+        "yr_built": input_data["yr_built"],
+        "yr_renovated": input_data["yr_renovated"],
+        "log_sqft_living": input_data["log_sqft_living"],
+        "log_sqft_lot": input_data["log_sqft_lot"],
+        "log_sqft_above": input_data["log_sqft_above"],
+        "log_sqft_basement": input_data["log_sqft_basement"],
+        "city_encoded": mapped_city_encoding,
+        "waterfront": input_data["waterfront"]
+    }
+
+    X_clf = pd.DataFrame([classification_features])
+    
+    predicted_cluster = classifier_pipeline.predict(X_clf)[0]
 
     cluster_mapping = {
         0: "Budget Portfolio",
@@ -199,31 +229,29 @@ def run_real_estate_pipeline(payload: HouseFeaturesInput):
     )
 
     # --- STEP 2: CONTINUOUS PRICE REGRESSION ---
-    regression_features = [
-        "log_sqft_living",
-        "log_sqft_lot",
-        "log_sqft_above",
-        "log_sqft_basement",
-        "bedrooms",
-        "bathrooms",
-        "floors",
-        "view",
-        "condition",
-        "yr_built",
-        "yr_renovated",
-        "waterfront",
-    ]
+    regression_features = {
+        "bedrooms": input_data["bedrooms"],
+        "bathrooms": input_data["bathrooms"],
+        "floors": input_data["floors"],
+        "view": input_data["view"],
+        "condition": input_data["condition"],
+        "yr_built": input_data["yr_built"],
+        "yr_renovated": input_data["yr_renovated"],
+        "log_sqft_living": input_data["log_sqft_living"],
+        "log_sqft_lot": input_data["log_sqft_lot"],
+        "log_sqft_above": input_data["log_sqft_above"],
+        "log_sqft_basement": input_data["log_sqft_basement"],
+        "city_encoded": mapped_city_encoding,
+        "waterfront": input_data["waterfront"],
+        "cluster_id_1": 1 if predicted_cluster == 1 else 0,
+        "cluster_id_2": 1 if predicted_cluster == 2 else 0
+    }
 
-    X_reg = pd.DataFrame([input_data])[regression_features]
-
-    # MANUAL ONE-HOT-ENCODING ALIGNMENT FOR CLUSTER ID DUMMIES
-    X_reg["cluster_id_1"] = 1 if predicted_cluster == 1 else 0
-    X_reg["cluster_id_2"] = 1 if predicted_cluster == 2 else 0
+    X_reg = pd.DataFrame([regression_features])
 
     predicted_log_price = regressor_model.predict(X_reg)[0]
-    final_predicted_price = float(np.expm1(predicted_log_price))
-
-    # --- STEP 3: AGENTIC LLM INTERPRETATION PIPELINE ---
+    final_predicted_price = float(np.exp(predicted_log_price))
+    
     # --- STEP 3: AGENTIC LLM INTERPRETATION PIPELINE ---
     llm_interpretation = "LLM Engine offline. Missing environment credentials."
 
